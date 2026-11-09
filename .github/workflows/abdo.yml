@@ -2,8 +2,6 @@ name: 🖥️ Free Windows RDP - SSH Tunnel
 
 on: 
   workflow_dispatch:
-  push:
-    branches: [ main, master ]
 
 jobs:
   rdp:
@@ -11,9 +9,6 @@ jobs:
     timeout-minutes: 360  # 6 hours maximum
     
     steps:
-    - name: 📥 Checkout Repository
-      uses: actions/checkout@v4
-      
     - name: 🔧 Enable RDP Service
       run: |
         Write-Host "🚀 Setting up Windows RDP..."
@@ -66,11 +61,6 @@ jobs:
         Write-Host "🌐 Server: Check SSH tunnel output above"
         Write-Host "🔌 Port: 3389"
         Write-Host "=================================="
-        Write-Host "📝 Instructions:"
-        Write-Host "1. Copy the server name from SSH tunnel output"
-        Write-Host "2. Use any RDP client to connect"
-        Write-Host "3. Enter the credentials above"
-        Write-Host "=================================="
 
     - name: 🔄 Keep Session Active
       run: |
@@ -88,9 +78,5 @@ jobs:
             $minutes = $remaining.Minutes
             
             Write-Host "🟢 Session Active - Time Remaining: $hours hours $minutes minutes"
-            
-            # Show some activity every 5 minutes
             Start-Sleep -Seconds 300
         }
-        
-        Write-Host "⏰ 6-hour limit reached. Session ending..."
