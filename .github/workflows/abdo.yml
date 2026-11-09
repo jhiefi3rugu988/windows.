@@ -1,0 +1,96 @@
+name: 🖥️ Free Windows RDP - SSH Tunnel
+
+on: 
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  rdp:
+    runs-on: windows-latest
+    timeout-minutes: 360  # 6 hours maximum
+    
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Enable RDP Service
+      run: |
+        Write-Host "🚀 Setting up Windows RDP..."
+        
+        # Enable Remote Desktop
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
+        
+        # Enable RDP through Windows Firewall
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        
+        # Disable Network Level Authentication for easier connection
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 0
+        
+        # Set strong password for runneradmin user
+        Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "RDP@SSH2024!" -Force)
+        
+        # Add to Remote Desktop Users group
+        Add-LocalGroupMember -Group "Remote Desktop Users" -Member "runneradmin" -ErrorAction SilentlyContinue
+        
+        Write-Host "✅ RDP enabled successfully!"
+
+    - name: 🌐 Setup Serveo SSH Tunnel
+      run: |
+        Write-Host "🌐 Setting up SSH tunnel via serveo.net..."
+        
+        # Generate random subdomain
+        $randomId = Get-Random -Minimum 1000 -Maximum 9999
+        $subdomain = "rdp-$randomId"
+        
+        Write-Host "🔗 Tunnel subdomain: $subdomain"
+        Write-Host "🔗 Full URL: $subdomain.serveo.net:3389"
+        
+        # Start SSH tunnel using serveo.net
+        Write-Host "🚀 Starting SSH tunnel..."
+        Start-Process -FilePath "ssh" -ArgumentList "-o", "StrictHostKeyChecking=no", "-R", "$subdomain`:3389:localhost:3389", "serveo.net" -WindowStyle Hidden
+        
+        Write-Host "⏳ Waiting for tunnel to establish..."
+        Start-Sleep -Seconds 20
+        
+        Write-Host "🔗 RDP Connection: $subdomain.serveo.net"
+        Write-Host "📋 Port: 3389"
+
+    - name: 🔑 Display Connection Details
+      run: |
+        Write-Host "=================================="
+        Write-Host "🖥️  RDP CONNECTION DETAILS"
+        Write-Host "=================================="
+        Write-Host "👤 Username: runneradmin"
+        Write-Host "🔑 Password: RDP@SSH2024!"
+        Write-Host "🌐 Server: Check SSH tunnel output above"
+        Write-Host "🔌 Port: 3389"
+        Write-Host "=================================="
+        Write-Host "📝 Instructions:"
+        Write-Host "1. Copy the server name from SSH tunnel output"
+        Write-Host "2. Use any RDP client to connect"
+        Write-Host "3. Enter the credentials above"
+        Write-Host "=================================="
+
+    - name: 🔄 Keep Session Active
+      run: |
+        Write-Host "🟢 Session is now active!"
+        Write-Host "⏰ Started at: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+        Write-Host "🛑 Click 'Cancel workflow' to stop the session"
+        Write-Host ""
+        
+        $startTime = Get-Date
+        $endTime = $startTime.AddHours(6)
+        
+        while ((Get-Date) -lt $endTime) {
+            $remaining = $endTime - (Get-Date)
+            $hours = [math]::Floor($remaining.TotalHours)
+            $minutes = $remaining.Minutes
+            
+            Write-Host "🟢 Session Active - Time Remaining: $hours hours $minutes minutes"
+            
+            # Show some activity every 5 minutes
+            Start-Sleep -Seconds 300
+        }
+        
+        Write-Host "⏰ 6-hour limit reached. Session ending..."
