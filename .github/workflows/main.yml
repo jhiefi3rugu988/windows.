@@ -1,0 +1,40 @@
+name: 🖥️ Free Windows RDP - SSH Tunnel
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  rdp:
+    runs-on: windows-latest
+    timeout-minutes: 360
+    
+    steps:
+    - name: 🔧 Enable RDP Service
+      run: |
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 0
+        Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "RDP@SSH2024!" -Force)
+        Add-LocalGroupMember -Group "Remote Desktop Users" -Member "runneradmin" -ErrorAction SilentlyContinue
+
+    - name: 🌐 Start Serveo Tunnel & Get URL
+      run: |
+        $randomId = Get-Random -Minimum 1000 -Maximum 9999
+        $subdomain = "rdp-$randomId"
+        
+        Write-Host "========================================"
+        Write-Host "🌐 Your RDP Address: $subdomain.serveo.net"
+        Write-Host "🔌 Port: 3389"
+        Write-Host "👤 Username: runneradmin"
+        Write-Host "🔑 Password: RDP@SSH2024!"
+        Write-Host "========================================"
+        
+        Start-Process -FilePath "ssh" -ArgumentList "-o", "StrictHostKeyChecking=no", "-R", "$subdomain`:3389:localhost:3389", "serveo.net" -NoNewWindow
+
+    - name: 🔄 Keep Session Active
+      run: |
+        $startTime = Get-Date
+        $endTime = $startTime.AddHours(6)
+        while ((Get-Date) -lt $endTime) {
+            Start-Sleep -Seconds 300
+        }
